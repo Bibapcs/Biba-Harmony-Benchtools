@@ -89,3 +89,7 @@ hdc shell aa start -a EntryAbility -b com.bibapcs.bbpcs
 - [pbrt-v4](https://github.com/mmp/pbrt-v4)
 - [ArgyllCMS](https://www.argyllcms.com/)（端侧移植层位于 `entry/src/main/cpp/argyll/`）
 - 内置渲染场景为 pbrt-v4-scenes 的 bistro_cafe（约 1.2GB，位于 rawfile）
+
+## 许可证
+
+本项目自有代码采用 [MIT License](LICENSE)；`third_party/` 下各组件及内置场景遵循其各自的许可证。
