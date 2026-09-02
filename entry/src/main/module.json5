@@ -1,0 +1,89 @@
+{
+  "module": {
+    "name": "entry",
+    "type": "entry",
+    "description": "$string:module_desc",
+    "mainElement": "EntryAbility",
+    "deviceTypes": [
+      "phone",
+      "tablet",
+      "2in1"
+    ],
+    "deliveryWithInstall": true,
+    "installationFree": false,
+    "pages": "$profile:main_pages",
+    "abilities": [
+      {
+        "name": "EntryAbility",
+        "srcEntry": "./ets/entryability/EntryAbility.ets",
+        "description": "$string:EntryAbility_desc",
+        "icon": "$media:layered_image",
+        "label": "$string:EntryAbility_label",
+        "startWindowIcon": "$media:startIcon",
+        "startWindowBackground": "$color:start_window_background",
+        "exported": true,
+        "skills": [
+          {
+            "entities": [
+              "entity.system.home"
+            ],
+            "actions": [
+              "ohos.want.action.home"
+            ]
+          }
+        ]
+      }
+    ],
+    "extensionAbilities": [
+      {
+        "name": "EntryBackupAbility",
+        "srcEntry": "./ets/entrybackupability/EntryBackupAbility.ets",
+        "type": "backup",
+        "exported": false,
+        "metadata": [
+          {
+            "name": "ohos.extension.backup",
+            "resource": "$profile:backup_config"
+          }
+        ],
+      },
+      {
+        "name": "I1DriverAbility",
+        "srcEntry": "./ets/driverability/I1DriverAbility.ets",
+        "icon": "$media:layered_image",
+        "exported": true,
+        "type": "driver",
+        "metadata": [
+          {
+            "name": "bus",
+            "value": "USB"
+          },
+          {
+            "name": "desc",
+            "value": "X-Rite i1 Pro 3 colorimeter driver"
+          },
+          {
+            "name": "vendor",
+            "value": "bbpcs"
+          },
+          {
+            "name": "vid",
+            "value": "0x0765"
+          },
+          {
+            "name": "pid",
+            "value": "0x6009"
+          }
+        ]
+      }
+    ],
+    "requestPermissions": [
+      {
+        "name": "ohos.permission.ACCESS_DDK_USB"
+      },
+      {
+        "name": "ohos.permission.ACCESS_EXTENSIONAL_DEVICE_DRIVER"
+      }
+    ]
+  }
+}

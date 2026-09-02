@@ -1,0 +1,13 @@
+/node_modules
+/oh_modules
+/local.properties
+/.idea
+**/build
+/.hvigor
+.cxx
+**/.test
+/.appanalyzer
+/entry/.preview
+**/oh_modules
+**/.DS_Store
+**/._*

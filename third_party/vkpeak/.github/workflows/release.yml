@@ -1,0 +1,136 @@
+name: release
+on: workflow_dispatch
+
+env:
+  VULKANSDK_VERSION: 1.4.350.0
+  DEVELOPER_DIR: /Applications/Xcode_16.4.0.app/Contents/Developer
+  UseMultiToolTask: true
+  APPLICATION_NAME: vkpeak
+
+jobs:
+
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      APPNAME: ${{ steps.get_appname.outputs.APPNAME }}
+      VERSION: ${{ steps.get_version.outputs.VERSION }}
+    steps:
+    - name: get-appname
+      id: get_appname
+      run: echo "APPNAME=${APPLICATION_NAME}" >> $GITHUB_OUTPUT
+    - name: get-version
+      id: get_version
+      run: |
+        DATE=`date +'%Y%m%d'`
+        echo "VERSION=${DATE}" >> $GITHUB_OUTPUT
+
+  linux:
+    needs: [setup]
+    runs-on: ubuntu-latest
+    env:
+      PACKAGENAME: ${{ needs.setup.outputs.APPNAME }}-${{ needs.setup.outputs.VERSION }}-linux
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        submodules: 'recursive'
+    - name: build
+      run: |
+        docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace quay.io/pypa/manylinux2014_x86_64 /bin/bash -c "mkdir -p build && cd build && cmake .. && cmake --build . -j 4"
+    - name: package
+      run: |
+        mkdir -p ${{ env.PACKAGENAME }}
+        cp README.md LICENSE ${{ env.PACKAGENAME }}
+        cp build/${{ needs.setup.outputs.APPNAME }} ${{ env.PACKAGENAME }}
+        strip -g ${{ env.PACKAGENAME }}/${{ needs.setup.outputs.APPNAME }}
+        zip -9 -r ${{ env.PACKAGENAME }}.zip ${{ env.PACKAGENAME }}
+    - name: upload
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ env.PACKAGENAME }}
+        path: ${{ env.PACKAGENAME }}.zip
+
+  macos:
+    needs: [setup]
+    runs-on: macos-15-intel
+    env:
+      PACKAGENAME: ${{ needs.setup.outputs.APPNAME }}-${{ needs.setup.outputs.VERSION }}-macos
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        submodules: 'recursive'
+    - name: vulkansdk
+      run: |
+        wget -q https://sdk.lunarg.com/sdk/download/${{ env.VULKANSDK_VERSION }}/mac/vulkansdk-macos-${{ env.VULKANSDK_VERSION }}.zip?Human=true -O vulkansdk-macos-${{ env.VULKANSDK_VERSION }}.zip
+        unzip vulkansdk-macos-${{ env.VULKANSDK_VERSION }}.zip
+        sudo vulkansdk-macOS-${{ env.VULKANSDK_VERSION }}.app/Contents/MacOS/vulkansdk-macOS-${{ env.VULKANSDK_VERSION }} --root $GITHUB_WORKSPACE/${{ env.VULKANSDK_VERSION }} --accept-licenses --default-answer --confirm-command install
+    - name: build-x86_64
+      run: |
+        mkdir build-x86_64 && cd build-x86_64
+        cmake -DCMAKE_OSX_ARCHITECTURES="x86_64" \
+            -DVulkan_LIBRARY=$GITHUB_WORKSPACE/${{ env.VULKANSDK_VERSION }}/macOS/lib/MoltenVK.xcframework/macos-arm64_x86_64/libMoltenVK.a \
+            ..
+        cmake --build . -j 4
+    - name: build-arm64
+      run: |
+        mkdir build-arm64 && cd build-arm64
+        cmake -DCMAKE_OSX_ARCHITECTURES="arm64" \
+            -DVulkan_LIBRARY=$GITHUB_WORKSPACE/${{ env.VULKANSDK_VERSION }}/macOS/lib/MoltenVK.xcframework/macos-arm64_x86_64/libMoltenVK.a \
+            ..
+        cmake --build . -j 4
+    - name: package
+      run: |
+        mkdir -p ${{ env.PACKAGENAME }}
+        cp README.md LICENSE ${{ env.PACKAGENAME }}
+        lipo -create build-x86_64/${{ needs.setup.outputs.APPNAME }} build-arm64/${{ needs.setup.outputs.APPNAME }} -o ${{ env.PACKAGENAME }}/${{ needs.setup.outputs.APPNAME }}
+        strip ${{ env.PACKAGENAME }}/${{ needs.setup.outputs.APPNAME }}
+        zip -9 -r ${{ env.PACKAGENAME }}.zip ${{ env.PACKAGENAME }}
+    - name: upload
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ env.PACKAGENAME }}
+        path: ${{ env.PACKAGENAME }}.zip
+
+  windows:
+    needs: [setup]
+    runs-on: windows-latest
+    env:
+      UseMultiToolTask: true
+      PACKAGENAME: ${{ needs.setup.outputs.APPNAME }}-${{ needs.setup.outputs.VERSION }}-windows
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        submodules: 'recursive'
+    - name: build
+      run: |
+        mkdir build; cd build
+        cmake -A x64 ..
+        cmake --build . --config Release -j 4
+    - name: package
+      run: |
+        mkdir ${{ env.PACKAGENAME }}
+        Copy-Item -Verbose -Path "README.md" -Destination "${{ env.PACKAGENAME }}"
+        Copy-Item -Verbose -Path "LICENSE" -Destination "${{ env.PACKAGENAME }}"
+        Copy-Item -Verbose -Path "build\Release\${{ needs.setup.outputs.APPNAME }}.exe" -Destination "${{ env.PACKAGENAME }}"
+        7z a -r ${{ env.PACKAGENAME }}.zip ${{ env.PACKAGENAME }}
+    - name: upload
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ env.PACKAGENAME }}
+        path: ${{ env.PACKAGENAME }}.zip
+
+  release:
+    needs: [setup, linux, macos, windows]
+    runs-on: ubuntu-latest
+    steps:
+    - name: download
+      uses: actions/download-artifact@v8
+      with:
+        path: artifacts
+
+    - name: create-release
+      uses: softprops/action-gh-release@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        tag_name: ${{ needs.setup.outputs.VERSION }}
+        name: Release ${{ needs.setup.outputs.VERSION }}
+        files: artifacts/*/*.zip

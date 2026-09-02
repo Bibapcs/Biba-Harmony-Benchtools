@@ -1,0 +1,10 @@
+*.o
+*.d
+*.a
+*.so*
+_o
+b
+zstd_build
+lz4_build
+brotli_build
+lzham_build

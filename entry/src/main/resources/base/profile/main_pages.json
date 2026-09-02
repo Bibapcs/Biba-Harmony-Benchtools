@@ -1,0 +1,11 @@
+{
+  "src": [
+    "pages/Index",
+    "pages/VkpeakPage",
+    "pages/StressPage",
+    "pages/SevenZipPage",
+    "pages/DiskPage",
+    "pages/PbrtPage",
+    "pages/ColorPage"
+  ]
+}

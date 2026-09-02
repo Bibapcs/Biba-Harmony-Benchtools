@@ -1,0 +1,26 @@
+name: scons
+
+on: push
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install scons
+
+      - name: Build
+        run: |
+          make
+
+      - name: Test
+        run: |
+          make test
